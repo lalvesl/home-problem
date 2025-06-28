@@ -1,11 +1,4 @@
-mod lib_std_impl;
-mod lib_without_stds;
-pub mod partial_ord_method;
-
-use std::{
-    cmp::Ordering,
-    hash::{DefaultHasher, Hash, Hasher},
-};
+use std::cmp::Ordering;
 
 #[derive(Debug)]
 struct Node<K, V> {
@@ -101,103 +94,6 @@ where
     }
 }
 
-#[derive(Debug)]
-enum HashMapNode<K, V> {
-    Node(Box<Node<K, V>>),
-    Sub(Vec<HashMapNode<K, V>>),
-    None,
-}
-
-const DEFAULT_BIT_COUNT_HASH_MAP: usize = 4;
-const DEFAULT_SIZE_HASH_MAP: usize = 16; // 2^DEFAULT_BIT_COUNT_HASH_MAP
-
-/// FIXME: This method not finished
-struct TheHashMap<K, V> {
-    root: HashMapNode<K, V>,
-}
-
-impl<K, V> TheHashMap<K, V>
-where
-    K: Hash + PartialEq,
-{
-    pub fn new() -> TheHashMap<K, V> {
-        Self {
-            root: HashMapNode::None,
-        }
-    }
-
-    fn get_index(hash: u64, iter: usize) -> usize {
-        let level = iter * DEFAULT_BIT_COUNT_HASH_MAP;
-        let import = (7 << level) as usize;
-        (hash as usize & import) >> level
-    }
-
-    fn hash(key: &K) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        key.hash(&mut hasher);
-        let hash = hasher.finish();
-        hash
-    }
-
-    pub fn put(&mut self, key: K, value: V) {
-        let hash = Self::hash(&key);
-        let mut iter = 0;
-        let mut ref_to = &mut self.root;
-        loop {
-            match ref_to {
-                HashMapNode::Sub(on_ref) => {
-                    let index = Self::get_index(hash, iter);
-                    ref_to = on_ref.get_mut(index).unwrap();
-                }
-                HashMapNode::None => {
-                    let index = Self::get_index(hash, iter);
-                    let mut vec = Vec::with_capacity(DEFAULT_SIZE_HASH_MAP);
-                    (0..16).for_each(|_| vec.push(HashMapNode::None));
-                    vec[index] = HashMapNode::Node(Box::new(Node { key, value }));
-                    break;
-                }
-                HashMapNode::Node(n) => {
-                    if n.key == key {
-                        n.value = value
-                    } else {
-                        let hash_s = Self::hash(&n.key);
-
-                        if Self::get_index(hash_s, iter) == Self::get_index(hash, iter) {
-                            todo!("Colision")
-                        } else {
-                            todo!("Need to change this referece to HashMapNode::Sub")
-                        }
-                    }
-
-                    break;
-                }
-            }
-        }
-    }
-
-    pub fn get(&self, key: &K) -> Option<&V> {
-        let hash = Self::hash(key);
-        let mut iter = 0;
-        let mut ref_to = &self.root;
-        loop {
-            match ref_to {
-                HashMapNode::Sub(on_ref) => {
-                    let index = Self::get_index(hash, iter);
-                    ref_to = on_ref.get(index).unwrap();
-                }
-                HashMapNode::None => {
-                    break None;
-                }
-                HashMapNode::Node(n) => {
-                    if n.key.eq(&key) {
-                        break Some(&n.value);
-                    }
-                }
-            }
-        }
-    }
-}
-
 pub type Timed = usize;
 
 #[derive(Debug)]
@@ -285,19 +181,6 @@ impl<T> Default for TimeTravelLingHashMap<T> {
 #[cfg(test)]
 mod test {
     use super::*;
-
-    /// FIXME: Method not finished, tests not possible
-    // #[test]
-    // fn t_the_hash_map() {
-    //     let mut bt = TheHashMap::new();
-    //
-    //     (0..10).for_each(|i| bt.put(i.to_string(), i));
-    //
-    //     let four = bt.get(&"4".to_string()).unwrap();
-    //     let seven = bt.get(&"7".to_string()).unwrap();
-    //     assert_eq!(*four, 4);
-    //     assert_eq!(*seven, 7);
-    // }
 
     #[test]
     fn t_the_binary_tree() {
