@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: $PR_NM
+  namespace: $NAMESPACE
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: $PR_NM
+  template:
+    metadata:
+      labels:
+        app: $PR_NM
+        logging: "true"
+    spec:
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+      imagePullSecrets:
+        - name: registry.weg.net
+      volumes:
+        - flexVolume:
+            driver: fstab/cifs
+            fsType: cifs
+            options:
+              mountOptions: dir_mode=0777,file_mode=0777,iocharset=utf8,noperm,nounix,rw,vers=3.0
+              networkPath: $SMB_PATH
+            secretRef:
+              name: $SMB_CRED
+          name: interface-ep0
+        - emptyDir: {}
+          name: tmp
+      containers:
+        - name: $PR_NM
+          image: $IMAGE_RELEASE_TAG
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: $SERVER_PORT
+          envFrom:
+            - configMapRef:
+                name: $CONFIGMAP
+          env:
+            - name: BIN_NAME
+              value: $BIN_NAME
+          resources:
+            limits:
+              cpu: $K8S_CPU_LIM
+              memory: $K8S_MEM_LIM
+            requests:
+              cpu: $K8S_CPU_REQ
+              memory: $K8S_MEM_REQ
+          volumeMounts:
+            - mountPath: $SMB_MOUNT_POINT
+              name: interface-ep0
+              readOnly: true
+            - mountPath: /tmp
+              name: tmp
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: $SERVICE
+  namespace: $NAMESPACE
+spec:
+  selector:
+    app: $PR_NM
+  type: "NodePort"
+  ports:
+    - port: $SERVER_PORT
+      targetPort: $SERVER_PORT
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: $SERVICE-grpc
+  namespace: $NAMESPACE
+spec:
+  selector:
+    app: $PR_NM
+  type: "NodePort"
+  ports:
+    - port: $GRPC_PORT
+      targetPort: $GRPC_PORT
+---
+apiVersion: v1
+data:
+  username: $SMB_USER
+  password: $SMB_PASS
+kind: Secret
+type: fstab/cifs
+metadata:
+  annotations:
+    field.cattle.io/description: Credential NAS
+  name: $SMB_CRED
+  namespace: $NAMESPACE

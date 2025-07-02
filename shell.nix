@@ -2,6 +2,7 @@
   pkgs ?
     import
       (fetchTarball {
+        # Replace for 25.05 when released
         url = "https://github.com/NixOS/nixpkgs/archive/2d64d17b747edca5055c1ba81da4beec2e71d9a9.tar.gz";
       })
       {
@@ -12,6 +13,8 @@
 }:
 let
   PROJECT_ROOT = builtins.toString ./.;
+  force_dns = builtins.getEnv "DNS";
+  force_update = builtins.getEnv "FORCE_UPDATE";
 in
 pkgs.mkShell {
   buildInputs = with pkgs; [
